@@ -1,47 +1,29 @@
+from recorder.tasks import record_stream_task
+from django.contrib.auth.models import User
+from recorder.serializers import RecorderSerializer
 from recorder.models import Recorder
 from django.http import HttpResponse
 from django.http.response import JsonResponse
 from django.views import View
 import threading
-from utils import random_str
+from utils import random_str, validate_serializer
 import logging
 from django.db.models import Q
+
+from recorder.serializers import UserSerializer
+
+from rest_framework import viewsets, permissions
+
+
+class UserViewSet(viewsets.ModelViewSet):
+    queryset = User.objects.all().order_by('-date_joined')
+    serializer_class = UserSerializer
+    permission_classes = [permissions.IsAuthenticated]
 
 
 threads = []
 
 logging.basicConfig(level=logging.DEBUG)
-
-
-def record_stream(recorder_id):
-    recorder = Recorder.objects.get(id=recorder_id)
-    index = recorder.thread_index
-    try:
-        while True:
-            # JUST WASTE TIME
-            pass
-    except:
-        recorder.status = -1  # MEANS SOMETHING WENT WRONG WITH RECORDING
-        recorder.save(update_fields=['status'])
-
-    # logging.info('SOMETHING')
-    # from cv2 import cv2
-    # vcap = cv2.VideoCapture(url)
-    # fourcc = cv2.VideoWriter_fourcc(*'MP4V')
-    # out = cv2.VideoWriter(f'data/{uuid}.mp4', fourcc, 20.0, (640, 480))
-
-    # import time
-    # import random
-    # time.sleep(20)
-
-    # while(1):
-    #     flag, frame = vcap.read()
-    #     out.write(frame)
-    #     # CHANGES REQUIRED HERE FOR LIVESTREAM
-    #     if flag or threads[index][2] != 'RECORDING':
-    #         threads[index][2] = 'INACTIVE'
-    #         break
-    #     cv2.waitKey(1)
 
 
 def process_path(filepath):
@@ -55,22 +37,24 @@ def process_url(url):
 
 
 class RecorderController(View):
+    # @validate_serializer(RecorderSerializer)
     def post(self, request):
         data = request.POST
-        print("DATA : ", data)
-        logging.info("DATA : ", data)
+        logging.info("DATA : " + str(data))
         url = process_url(data['url'])
 
         foldername = process_path(data['folder'])
 
         recorder = Recorder(
-            stream_url=url, foldername=foldername, thread_index=len(threads))
+            stream_url=url, foldername=foldername)  # , thread_index=len(threads))
         recorder.save()
 
-        thread = threading.Thread(
-            target=record_stream, args=(recorder.id,))
-        threads.append(thread)
-        thread.start()
+        record_stream_task.delay(recorder.id)
+
+        # thread = threading.Thread(
+        #     target=record_stream, args=(recorder.id,))
+        # threads.append(thread)
+        # thread.start()
         return HttpResponse(recorder.id)
 
     def get(self, request):
@@ -102,6 +86,7 @@ class RecorderController(View):
             recorder = Recorder.objects.get(id=uuid)
             index = recorder.thread_index
             print("THREAD INDEX =", index)
+            # stop_thread -> this func doesn't exist
             threads[index].stop_thread()
         except Exception as e:
             logging.error(e)
