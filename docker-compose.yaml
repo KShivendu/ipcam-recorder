@@ -1,4 +1,4 @@
-version: "0.1"
+version: "3.4"
 
 services:
   redis:
@@ -12,7 +12,7 @@ services:
   app:
     build:
       context: .
-    command: sh -c "wait-for redis:6379 && python manage.py migrate && gunicorn cam_recorder.wsgi -b 0.0.0.0:8000"
+    command: sh -c "python manage.py migrate && gunicorn cam_recorder.wsgi -b 0.0.0.0:8000"
     container_name: app
     depends_on:
       - redis
@@ -21,9 +21,11 @@ services:
     hostname: app
     image: app-image
     restart: on-failure
+    volumes:
+      - ./data/:/app/data
 
   celery_worker:
-    command: sh -c "wait-for redis:6379 && wait-for app:8000 -- celery -A cam_recorder worker -l info"
+    command: sh -c "celery -A cam_recorder worker -l info"
     container_name: celery_worker
     depends_on:
       - app
@@ -42,9 +44,11 @@ services:
     hostname: celery_worker
     image: app-image
     restart: on-failure
+    volumes:
+      - ./data/:/app/data
 
   celery_beat:
-    command: sh -c "wait-for redis:6379 && wait-for app:8000 -- celery -A cam_recorder beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler"
+    command: sh -c "celery -A cam_recorder beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler"
     container_name: celery_beat
     depends_on:
       - app
@@ -52,5 +56,8 @@ services:
     hostname: celery_beat
     image: app-image
     restart: on-failure
+    volumes:
+      - ./data/:/app/data
 # CMD : docker-compose up -d app
+# docker stack deploy --compose-file docker-compose.yml recorder_app
 
