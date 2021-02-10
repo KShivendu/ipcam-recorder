@@ -23,6 +23,8 @@ services:
     restart: on-failure
     volumes:
       - ./data/:/app/data
+    environment:
+      - PROD=1
 
   celery_worker:
     command: sh -c "celery -A cam_recorder worker -l info"
@@ -30,17 +32,18 @@ services:
     depends_on:
       - app
       - redis
-    deploy:
-      replicas: 2
-      restart_policy:
-        condition: on-failure
-      resources:
-        limits:
-          cpus: "0.50"
-          memory: 50M
-        reservations:
-          cpus: "0.25"
-          memory: 20M
+      - celery_worker
+    # deploy:
+    #   replicas: 2
+    #   restart_policy:
+    #     condition: on-failure
+    #   resources:
+    #     limits:
+    #       cpus: "0.50"
+    #       memory: 50M
+    #     reservations:
+    #       cpus: "0.25"
+    #       memory: 20M
     hostname: celery_worker
     image: app-image
     restart: on-failure
