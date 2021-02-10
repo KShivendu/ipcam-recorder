@@ -5,18 +5,19 @@ services:
     container_name: redis_cam_rec
     hostname: redis_cam_rec
     image: redis:4.0-alpine
-
     ports:
       - "6379:6379"
     restart: on-failure
 
   app:
-    build: .
-    command: "echo 'Hello World'"
+    build:
+      context: .
+    command: sh -c "wait-for redis:6379 && python manage.py migrate && gunicorn cam_recorder.wsgi -b 0.0.0.0:8000"
     container_name: app
     depends_on:
       - redis
-    expose: "8000"
+    ports:
+      - "8000:8000"
     hostname: app
     image: app-image
     restart: on-failure
@@ -51,3 +52,5 @@ services:
     hostname: celery_beat
     image: app-image
     restart: on-failure
+# CMD : docker-compose up -d app
+

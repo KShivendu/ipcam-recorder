@@ -4,3 +4,4 @@ django-admin
 djangorestframework
 django-celery-beat
 opencv-python
+gunicorn
