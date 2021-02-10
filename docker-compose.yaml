@@ -1,0 +1,53 @@
+version: "0.1"
+
+services:
+  redis:
+    container_name: redis_cam_rec
+    hostname: redis_cam_rec
+    image: redis:4.0-alpine
+
+    ports:
+      - "6379:6379"
+    restart: on-failure
+
+  app:
+    build: .
+    command: "echo 'Hello World'"
+    container_name: app
+    depends_on:
+      - redis
+    expose: "8000"
+    hostname: app
+    image: app-image
+    restart: on-failure
+
+  celery_worker:
+    command: sh -c "wait-for redis:6379 && wait-for app:8000 -- celery -A cam_recorder worker -l info"
+    container_name: celery_worker
+    depends_on:
+      - app
+      - redis
+    deploy:
+      replicas: 2
+      restart_policy:
+        condition: on-failure
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 50M
+        reservations:
+          cpus: "0.25"
+          memory: 20M
+    hostname: celery_worker
+    image: app-image
+    restart: on-failure
+
+  celery_beat:
+    command: sh -c "wait-for redis:6379 && wait-for app:8000 -- celery -A cam_recorder beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler"
+    container_name: celery_beat
+    depends_on:
+      - app
+      - redis
+    hostname: celery_beat
+    image: app-image
+    restart: on-failure

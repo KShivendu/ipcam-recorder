@@ -15,7 +15,7 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
-from recorder.views import RecorderController
+from recorder.views import RecorderController, RecordingController
 
 from rest_framework import routers
 from recorder.views import UserViewSet
@@ -28,5 +28,6 @@ urlpatterns = [
     path('', include(router.urls)),
     path('admin/', admin.site.urls),
     path('api/recorder', RecorderController.as_view()),
+    path('api/recording', RecordingController.as_view()),
     path('api-auth/', include('rest_framework.urls', namespace='rest_framework'))
 ]

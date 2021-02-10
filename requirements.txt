@@ -2,3 +2,4 @@ redis
 celery
 django-admin
 djangorestframework
+django-celery-beat
