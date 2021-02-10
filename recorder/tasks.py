@@ -1,6 +1,5 @@
 import logging
 from celery.exceptions import Ignore
-from typing_extensions import final
 from recorder.models import Recorder, Recording
 from celery.decorators import task, periodic_task
 # from celery.task.schedules import crontab

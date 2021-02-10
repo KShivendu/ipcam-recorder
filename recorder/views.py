@@ -15,7 +15,7 @@ from recorder.serializers import UserSerializer
 from rest_framework import viewsets, permissions
 from celery.result import AsyncResult
 from cam_recorder.celery import app as celery_app
-from cv2 import cv2
+import cv2
 import json
 from django.utils.timezone import now
 from celery.contrib.abortable import AbortableAsyncResult
